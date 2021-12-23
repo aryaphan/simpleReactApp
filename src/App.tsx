@@ -3,77 +3,75 @@ import logo from './logo.svg';
 import './App.css';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import {v4 as uuid} from 'uuid'
+import { BoardColumn } from './types/boardColumn';
+import { Ticket } from './types/ticket';
+import { TicketStatus } from './types/ticketStatus';
 
-interface Item {
-  id: string,
-  content: string
-}
-
-const itemsFromBackend: Item[] = [
+const itemsFromBackend: Ticket[] = [
   {
     id: uuid(),
-    content: "Task 1"
+    title: "Task 1"
   },
   {
     id: uuid(),
-    content: "Task 2"
+    title: "Task 2"
   }
 ]
 
-const columnsFromBackend = 
-  {
-    [uuid()]: {
-      name: 'To do',
-      items: itemsFromBackend
-    },
-    [uuid()]: {
-      name: 'In Progress',
-      items: []
-    },
-    [uuid()]: {
-      name: "In Review",
-      items: []
-    },
-    [uuid()]: {
-      name: "Done",
-      items: []
-    }
+const columnsFromBackend: BoardColumn = {
+  "To Do": {
+    tickets: itemsFromBackend
+  },
+  "In Progress": {
+    tickets: []
+  },
+  "In Review": {
+    tickets: []
+  },
+  "Done": {
+    tickets: []
   }
+} 
+  
 
-function onDragEnd(result: DropResult, columns: any, setColumns: any) {
+function onDragEnd(
+  result: DropResult, 
+  columns: BoardColumn, 
+  setColumns: React.Dispatch<React.SetStateAction<BoardColumn>>
+) {
   if (!result.destination) {
     return;
   }
   const {source, destination} = result
 
   if (source.droppableId !== destination.droppableId) {
-    const sourceColumn = columns[source.droppableId]
-    const destColumn = columns[destination.droppableId]
-    const sourceItems = [...sourceColumn.items]
-    const destItems = [...destColumn.items]
+    const sourceColumn = columns[source.droppableId as TicketStatus]
+    const destColumn = columns[destination.droppableId as TicketStatus]
+    const sourceItems = [...sourceColumn.tickets]
+    const destItems = [...destColumn.tickets]
     const [removed] = sourceItems.splice(source.index, 1)
     destItems.splice(destination.index, 0, removed)
     setColumns({
       ...columns,
-      [source.droppableId]: {
+      [source.droppableId as TicketStatus]: {
         ...sourceColumn,
-        items: sourceItems
+        tickets: sourceItems
       },
-      [destination.droppableId]: {
+      [destination.droppableId as TicketStatus]: {
         ...destColumn,
-        items: destItems
+        tickets: destItems
       }
     })
   } else {
-    const column = columns[source.droppableId]
-    const copiedItems = [...column.items]
+    const column = columns[source.droppableId as TicketStatus]
+    const copiedItems = [...column.tickets]
     const [removed] = copiedItems.splice(source.index, 1)
     copiedItems.splice(destination.index, 0, removed)
     setColumns({
       ...columns,
       [source.droppableId]: {
         ...column,
-        items: copiedItems
+        tickets: copiedItems
       }
     })
   }
@@ -104,12 +102,12 @@ function App() {
   return (
     <div style = {{ display: 'flex', justifyContent: 'center', height: '100%'}}>
       <DragDropContext onDragEnd={result => onDragEnd(result, columns, setColumns)}>
-        {Object.entries(columns).map(([id, column]) => {
+        {Object.entries(columns).map(([taskStatus, column]) => {
           return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-              <h2>{column.name}</h2>
+              <h2>{taskStatus}</h2>
               <div style={{ margin: 8 }}>
-                <Droppable droppableId={id} key={id}>
+                <Droppable droppableId={taskStatus} key={taskStatus}>
                   {(provided, snapshot) => {
                     return (
                       <div 
@@ -122,9 +120,9 @@ function App() {
                           minHeight: 500
                         }}
                       >
-                        {column.items.map((item, index) => {
+                        {column.tickets.map((ticket, index) => {
                           return (
-                            <Draggable key={item.id} draggableId={item.id} index={index}>
+                            <Draggable key={ticket.id} draggableId={ticket.id} index={index}>
                               {(provided, snapshot) => {
                                 return (
                                   <div
@@ -141,7 +139,7 @@ function App() {
                                       ...provided.draggableProps.style
                                     }}
                                   >
-                                    {item.content}
+                                    {ticket.title}
                                   </div>
                                 )
                               }}
